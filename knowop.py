@@ -164,7 +164,7 @@ def create_samples(f: Callable[..., int], n_args: int, n_bits: int,
 def forward_prop(layers: List[Layer], inputs: Tuple[float, ...])\
         -> Tuple[float, ...]:
     current_inputs = inputs
-    for layer in layers: # Assumes the input layer is not in the list
+    for layer in layers:  # Assumes the input layer is not in the list
         current_inputs = layer.activate(current_inputs)
     return current_inputs  # This is the outputs
 
@@ -182,28 +182,39 @@ def hadamard(mat1: List[float], mat2: List[float]) -> List[float]:
     return new
 
 
-def back_prop(da_init: List[List[float]], layers: List[Layer]) -> None:
-    layers = layers[::-1]
+def update_db(layer_db: List[float], new_db: List[float]) -> None:
+    for i in range(len(layer_db)):
+        layer_db[i] += new_db[i]
+
+
+def update_dw(layer_dw: List[List[float]], new_dw: List[List[float]]) -> None:
+    for i in range(len(layer_dw)):
+        for j in range(len(layer_dw[i])):
+            layer_dw[i][j] += new_dw[i][j]
+
+
+def back_prop(da_init: List[List[float]], layers: List[Layer],
+              inputs: List[float]) -> None:
     current_da = da_init
-    for layer in layers:
-        layer.db = list(hadamard(g_prime(layer), current_da[0])) #Same as dz
-        da_prev = list(Math.matmul(Math.transpose(layer.w), [layer.db]))
-        layer.dw = Math.matmul([layer.db], Math.transpose(da_prev))
+    for i in range(len(layers) - 1, -1, -1):
+        layer = layers[i]
+        update_db(layer.db, hadamard(g_prime(layer), current_da[0]))
+        da_prev = Math.matmul(Math.transpose(layer.w), [layer.db])
+        update_dw(layer.dw, Math.matmul(Math.transpose([layer.db]),
+                            [inputs] if i == 0 else [layers[i - 1].a]))
         current_da = da_prev
 
 
-def update(layers: List[Layer], learning_rate: float) -> None:
+def update(layers: List[Layer], learning_rate: float, batch_size: int) -> None:
     for layer in layers:
-        #For w
-        for node in range(len(layer.w)):
-            for x in range(len(layer.w[node])):
-                layer.w[node][x] = layer.w[node][x] - \
-                                   (learning_rate *
-                                    (sum(layer.dw[0]) / len(layer.dw[0])))
-        #For b
-        for x in range(len(layer.b)):
-            layer.b[x] = layer.b[x] - \
-                         (learning_rate * (sum(layer.db) / len(layer.db)))
+        # For w
+        for i in range(len(layer.w)):
+            for j in range(len(layer.w[i])):
+                layer.w[i][j] = layer.w[i][j] - \
+                                learning_rate * (layer.dw[i][j] / batch_size)
+        # For b
+        for i in range(len(layer.b)):
+            layer.b[i] = layer.b[i] - learning_rate * (layer.db[i] / batch_size)
 
 
 def find_cost(output: Tuple[float, ...], actual: Tuple[float, ...])\
@@ -212,6 +223,13 @@ def find_cost(output: Tuple[float, ...], actual: Tuple[float, ...])\
     for x in range(len(output)):
         new.append(Math.loss_prime(output[x], actual[x]))
     return new
+
+
+def reset(layers: List[Layer]) -> None:
+    for layer in layers:
+        layer.dw = [[0.0 for _ in range(len(layer.dw[0]))]
+                    for _ in range(len(layer.dw))]
+        layer.db = [0.0] * len(layer.db)
 
 
 def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
@@ -223,27 +241,29 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     Return the resulting trained network.
     """
     layers = []
-    for _ in range(5):
-        layers.append(Layer((4, 16), False))
-    layers.append(Layer((o_size, 16), True))
+    for _ in range(1):
+        layers.append(Layer((4, i_size), False))
+    layers.append(Layer((o_size, 4), True))
     i = 0
     batch_size = 20
     learning_rate = 1
     for sample in samples.keys():
         result = forward_prop(layers, sample)
-        da = [find_cost(result, samples[sample])]
-        back_prop(da, layers)
+        costs = find_cost(result, samples[sample])
+        back_prop([costs], layers, list(sample))
         if i == batch_size:
             i = 0
-            update(layers, learning_rate)
+            update(layers, learning_rate, batch_size)
+            reset(layers)
         else:
             i += 1
-        if learning_rate > .15:
+        if learning_rate > .1:
             learning_rate -= .01
     return layers
 
 
 def main() -> None:
+
     random.seed(0)
     f = lambda x, y: x + y  # operation to learn
     n_args = 2              # arity of operation
