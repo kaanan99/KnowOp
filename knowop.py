@@ -141,8 +141,6 @@ class Layer:  # do not modify class
         return tuple(self.a)
 
 
-
-
 def create_samples(f: Callable[..., int], n_args: int, n_bits: int,
 ) -> Dict[Tuple[int, ...], Tuple[int, ...]]:
     """
@@ -163,14 +161,16 @@ def create_samples(f: Callable[..., int], n_args: int, n_bits: int,
     return samples
 
 
-def forward_prop(layers: List[Layer], inputs: Tuple[float]) -> Tuple[int]:
+def forward_prop(layers: List[Layer], inputs: Tuple[float, ...])\
+        -> Tuple[float, ...]:
     current_inputs = inputs
     for layer in layers: # Assumes the input layer is not in the list
         current_inputs = layer.activate(current_inputs)
     return current_inputs  # This is the outputs
 
+
 def g_prime(layer: Layer) -> List[float]:
-    if layer.g == Math.sigmoid:
+    if layer.g is Math.sigmoid:
         return [Math.sigmoid_prime(real) for real in layer.z]
     return [Math.relu_prime(real) for real in layer.z]
 
@@ -181,7 +181,8 @@ def hadamard(mat1: List[float], mat2: List[float]) -> List[float]:
         new.append(mat1[x] * mat2[x])
     return new
 
-def back_prop(da_init: List[float], layers: List[Layer]) -> None:
+
+def back_prop(da_init: List[List[float]], layers: List[Layer]) -> None:
     layers = layers[::-1]
     current_da = da_init
     for layer in layers:
@@ -190,22 +191,28 @@ def back_prop(da_init: List[float], layers: List[Layer]) -> None:
         layer.dw = Math.matmul([layer.db], Math.transpose(da_prev))
         current_da = da_prev
 
+
 def update(layers: List[Layer], learning_rate: float) -> None:
     for layer in layers:
         #For w
         for node in range(len(layer.w)):
             for x in range(len(layer.w[node])):
-                layer.w[node][x] = layer.w[node][x] - (learning_rate * (sum(layer.dw[0]) / len(layer.dw[0])))
+                layer.w[node][x] = layer.w[node][x] - \
+                                   (learning_rate *
+                                    (sum(layer.dw[0]) / len(layer.dw[0])))
         #For b
         for x in range(len(layer.b)):
-            layer.b[x] = layer.b[x] - (learning_rate * (sum(layer.db) / len(layer.db)))
+            layer.b[x] = layer.b[x] - \
+                         (learning_rate * (sum(layer.db) / len(layer.db)))
 
 
-def find_cost(output: List[float], actual: List[float]) -> List[float]:
+def find_cost(output: Tuple[float, ...], actual: Tuple[float, ...])\
+        -> List[float]:
     new = []
     for x in range(len(output)):
         new.append(Math.loss_prime(output[x], actual[x]))
     return new
+
 
 def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
                   i_size: int, o_size: int) -> List[Layer]:
@@ -216,7 +223,7 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     Return the resulting trained network.
     """
     layers = []
-    for x in range(5):
+    for _ in range(5):
         layers.append(Layer((4, 16), False))
     layers.append(Layer((o_size, 16), True))
     i = 0
@@ -234,8 +241,6 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
         if learning_rate > .15:
             learning_rate -= .01
     return layers
-
-
 
 
 def main() -> None:
@@ -260,6 +265,7 @@ def main() -> None:
         print("OUTPUT:", output)
         print("BITACT:", bits)
         print("BITEXP:", samples[inputs], end="\n\n")
+
 
 if __name__ == "__main__":
     main()
