@@ -163,19 +163,49 @@ def create_samples(f: Callable[..., int], n_args: int, n_bits: int,
     return samples
 
 
-def forward_prop(layers: List[Layer], inputs: Tuple[float]) -> Tuple[float]:
+def forward_prop(layers: List[Layer], inputs: Tuple[float]) -> Tuple[int]:
     current_inputs = inputs
-    for layer in layers[]: # Assumes the input layer is not in the list
+    for layer in layers: # Assumes the input layer is not in the list
         current_inputs = layer.activate(current_inputs)
     return current_inputs  # This is the outputs
 
+def g_prime(layer: Layer) -> List[float]:
+    if layer.g == Math.sigmoid:
+        return [Math.sigmoid_prime(real) for real in layer.z]
+    return [Math.relu_prime(real) for real in layer.z]
 
-def back_prop(da: List[float], layer: Layer) -> List[float]:
-    layer.db = Math.dot(da, layer.a) #Same as dz
-    da_prev = Math.matmul(Math.transpose(layer.w), layer.db)
-    layer.dw = Math.matmul(layer.db, Math.transpose(da_prev))
-    return da_prev
 
+def hadamard(mat1: List[float], mat2: List[float]) -> List[float]:
+    new = []
+    for x in range(len(mat1)):
+        new.append(mat1[x] * mat2[x])
+    return new
+
+def back_prop(da_init: List[float], layers: List[Layer]) -> None:
+    layers = layers[::-1]
+    current_da = da_init
+    for layer in layers:
+        layer.db = list(hadamard(g_prime(layer), current_da[0])) #Same as dz
+        da_prev = list(Math.matmul(Math.transpose(layer.w), [layer.db]))
+        layer.dw = Math.matmul([layer.db], Math.transpose(da_prev))
+        current_da = da_prev
+
+def update(layers: List[Layer], learning_rate: float) -> None:
+    for layer in layers:
+        #For w
+        for node in range(len(layer.w)):
+            for x in range(len(layer.w[node])):
+                layer.w[node][x] = layer.w[node][x] - (learning_rate * (sum(layer.dw[0]) / len(layer.dw[0])))
+        #For b
+        for x in range(len(layer.b)):
+            layer.b[x] = layer.b[x] - (learning_rate * (sum(layer.db) / len(layer.db)))
+
+
+def find_cost(output: List[float], actual: List[float]) -> List[float]:
+    new = []
+    for x in range(len(output)):
+        new.append(Math.loss_prime(output[x], actual[x]))
+    return new
 
 def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
                   i_size: int, o_size: int) -> List[Layer]:
@@ -185,6 +215,25 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     (forward) and their losses (backward) to update its weights and biases.
     Return the resulting trained network.
     """
+    layers = []
+    for x in range(5):
+        layers.append(Layer((4, 16), False))
+    layers.append(Layer((o_size, 16), True))
+    i = 0
+    batch_size = 20
+    learning_rate = 1
+    for sample in samples.keys():
+        result = forward_prop(layers, sample)
+        da = [find_cost(result, samples[sample])]
+        back_prop(da, layers)
+        if i == batch_size:
+            i = 0
+            update(layers, learning_rate)
+        else:
+            i += 1
+        if learning_rate > .15:
+            learning_rate -= .01
+    return layers
 
 
 
@@ -206,7 +255,7 @@ def main() -> None:
 
     network = train_network(train_set, n_args * n_bits, n_bits)
     for inputs in test_set:
-        output = tuple(round(n, 2) for n in propagate_forward(network, inputs))
+        output = tuple(round(n, 2) for n in forward_prop(network, inputs))
         bits = tuple(round(n) for n in output)
         print("OUTPUT:", output)
         print("BITACT:", bits)
