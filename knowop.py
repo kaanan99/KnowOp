@@ -217,7 +217,15 @@ def update(layers: List[Layer], learning_rate: float, batch_size: int) -> None:
             layer.b[i] = layer.b[i] - learning_rate * (layer.db[i] / batch_size)
 
 
-def find_cost(output: Tuple[float, ...], actual: Tuple[float, ...])\
+def find_loss(output: Tuple[float, ...], actual: Tuple[float, ...])\
+        -> List[float]:
+    new = []
+    for x in range(len(output)):
+        new.append(Math.loss(output[x], actual[x]))
+    return new
+
+
+def find_loss_prime(output: Tuple[float, ...], actual: Tuple[float, ...])\
         -> List[float]:
     new = []
     for x in range(len(output)):
@@ -249,8 +257,8 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     learning_rate = 1
     for sample in samples.keys():
         result = forward_prop(layers, sample)
-        costs = find_cost(result, samples[sample])
-        back_prop([costs], layers, list(sample))
+        loss_prime = find_loss_prime(result, samples[sample])
+        back_prop([loss_prime], layers, list(sample))
         if i == batch_size:
             i = 0
             update(layers, learning_rate, batch_size)
