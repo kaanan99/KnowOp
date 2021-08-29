@@ -258,6 +258,8 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     layers.append(Layer((o_size, i_size), True))
     sample_keys = list(samples.keys())
     batch_size = int(len(sample_keys) * .004)
+    if batch_size < 1:
+        batch_size = 5
     learning_rate = .1
     while learning_rate > .00001:
         mini_batch = random.sample(sample_keys, batch_size)
