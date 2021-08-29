@@ -82,8 +82,6 @@ class Math:
         return -expect / actual + (1 - expect) / (1 - actual)
 
 
-
-
 class Layer:  # do not modify class
 
     def __init__(self, size: Tuple[int, int], is_output: bool) -> None:
@@ -175,10 +173,10 @@ def g_prime(layer: Layer) -> List[float]:
     return [Math.relu_prime(real) for real in layer.z]
 
 
-def hadamard(mat1: List[float], mat2: List[float]) -> List[float]:
+def hadamard(list1: List[float], list2: List[float]) -> List[float]:
     new = []
-    for x in range(len(mat1)):
-        new.append(mat1[x] * mat2[x])
+    for num1, num2 in zip(list1, list2):
+        new.append(num1 * num2)
     return new
 
 
@@ -199,19 +197,25 @@ def back_prop(da_init: List[List[float]], layers: List[Layer],
     for i in range(len(layers) - 1, -1, -1):
         layer = layers[i]
         update_db(layer.db, hadamard(g_prime(layer), current_da[0]))
-        da_prev = Math.matmul(Math.transpose(layer.w), [layer.db])
-        update_dw(layer.dw, Math.matmul(Math.transpose([layer.db]),
+        db = Math.transpose([layer.db])
+        update_dw(layer.dw, Math.matmul(db,
                             [inputs] if i == 0 else [layers[i - 1].a]))
-        current_da = da_prev
+        da_prev = Math.matmul(Math.transpose(layer.w), db)
+        current_da = Math.transpose(da_prev)
 
 
 def update(layers: List[Layer], learning_rate: float, batch_size: int) -> None:
+    #print("new")
     for layer in layers:
         # For w
         for i in range(len(layer.w)):
             for j in range(len(layer.w[i])):
+                #print("layer.w[i][j]", layer.w[i][j])
+                #print("learning_rate * (layer.dw[i][j]
+                # / batch_size", learning_rate * (layer.dw[i][j] / batch_size))
                 layer.w[i][j] = layer.w[i][j] - \
                                 learning_rate * (layer.dw[i][j] / batch_size)
+        #print("layer.w", layer.w)
         # For b
         for i in range(len(layer.b)):
             layer.b[i] = layer.b[i] - learning_rate * (layer.db[i] / batch_size)
@@ -225,8 +229,8 @@ def find_loss(output: Tuple[float, ...], actual: Tuple[float, ...])\
     return new
 
 
-def find_loss_prime(output: Tuple[float, ...], actual: Tuple[float, ...])\
-        -> List[float]:
+def find_loss_prime(output: Tuple[float, ...],
+                    actual: Tuple[float, ...]) -> List[float]:
     new = []
     for x in range(len(output)):
         new.append(Math.loss_prime(output[x], actual[x]))
@@ -248,25 +252,22 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     (forward) and their losses (backward) to update its weights and biases.
     Return the resulting trained network.
     """
-    layers = []
-    for _ in range(1):
-        layers.append(Layer((4, i_size), False))
-    layers.append(Layer((o_size, 4), True))
-    i = 0
-    batch_size = 20
-    learning_rate = 1
-    for sample in samples.keys():
-        result = forward_prop(layers, sample)
-        loss_prime = find_loss_prime(result, samples[sample])
-        back_prop([loss_prime], layers, list(sample))
-        if i == batch_size:
-            i = 0
-            update(layers, learning_rate, batch_size)
-            reset(layers)
-        else:
-            i += 1
-        if learning_rate > .1:
-            learning_rate -= .01
+    layers = list()
+    #layers.append(Layer((10, i_size), False))
+    #layers.append(Layer((6, 10), False))
+    layers.append(Layer((o_size, i_size), True))
+    sample_keys = list(samples.keys())
+    batch_size = int(len(sample_keys) * .004)
+    learning_rate = .1
+    while learning_rate > .00001:
+        mini_batch = random.sample(sample_keys, batch_size)
+        for sample in mini_batch:
+            result = forward_prop(layers, sample)
+            loss_prime = find_loss_prime(result, samples[sample])
+            back_prop([loss_prime], layers, list(sample))
+        update(layers, learning_rate, batch_size)
+        reset(layers)
+        learning_rate *= .99
     return layers
 
 
