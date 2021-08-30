@@ -196,12 +196,13 @@ def back_prop(da_init: List[List[float]], layers: List[Layer],
     current_da = da_init
     for i in range(len(layers) - 1, -1, -1):
         layer = layers[i]
-        update_db(layer.db, hadamard(g_prime(layer), current_da[0]))
-        db = Math.transpose([layer.db])
-        update_dw(layer.dw, Math.matmul(db,
-                            [inputs] if i == 0 else [layers[i - 1].a]))
+        new_db = hadamard(current_da[0], g_prime(layer))
+        db = Math.transpose([new_db])
+        new_dw = Math.matmul(db, [inputs] if i == 0 else [layers[i - 1].a])
         da_prev = Math.matmul(Math.transpose(layer.w), db)
         current_da = Math.transpose(da_prev)
+        update_dw(layer.dw, new_dw)
+        update_db(layer.db, new_db)
 
 
 def update(layers: List[Layer], learning_rate: float, batch_size: int) -> None:
@@ -250,19 +251,20 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     layers = list()
     layers.append(Layer((o_size, i_size), True))
     sample_keys = list(samples.keys())
-    batch_size = int(len(sample_keys) * .0004)
+    batch_size = int(len(sample_keys) * .001)
     if batch_size < 1:
-        batch_size = 5
+        batch_size = 15
+    #batch_size = 60
     learning_rate = .05
     while learning_rate > .0001:
         mini_batch = random.choices(sample_keys, k=batch_size)
-        #loss = 0
+       # loss = 0
         for sample in mini_batch:
             result = forward_prop(layers, sample)
-            #loss += sum(find_loss(result, samples[sample]))
+      #      loss += sum(find_loss(result, samples[sample]))
             loss_prime = find_loss_prime(result, samples[sample])
             back_prop([loss_prime], layers, list(sample))
-        #print(loss / (batch_size * len(result)))
+     #   print(loss / (batch_size * len(result)))
         update(layers, learning_rate, batch_size)
         reset(layers)
         learning_rate *= .99
