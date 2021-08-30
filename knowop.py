@@ -205,17 +205,12 @@ def back_prop(da_init: List[List[float]], layers: List[Layer],
 
 
 def update(layers: List[Layer], learning_rate: float, batch_size: int) -> None:
-    #print("new")
     for layer in layers:
         # For w
         for i in range(len(layer.w)):
             for j in range(len(layer.w[i])):
-                #print("layer.w[i][j]", layer.w[i][j])
-                #print("learning_rate * (layer.dw[i][j]
-                # / batch_size", learning_rate * (layer.dw[i][j] / batch_size))
                 layer.w[i][j] = layer.w[i][j] - \
                                 learning_rate * (layer.dw[i][j] / batch_size)
-        #print("layer.w", layer.w)
         # For b
         for i in range(len(layer.b)):
             layer.b[i] = layer.b[i] - learning_rate * (layer.db[i] / batch_size)
@@ -253,23 +248,21 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     Return the resulting trained network.
     """
     layers = list()
-    #layers.append(Layer((10, i_size), False))
-    #layers.append(Layer((6, 10), False))
     layers.append(Layer((o_size, i_size), True))
     sample_keys = list(samples.keys())
-    batch_size = int(len(sample_keys) * .004)
+    batch_size = int(len(sample_keys) * .0004)
     if batch_size < 1:
         batch_size = 5
-    learning_rate = .01
-    while learning_rate > .00001:
-        mini_batch = random.sample(sample_keys, batch_size)
-        loss = 0
+    learning_rate = .05
+    while learning_rate > .0001:
+        mini_batch = random.choices(sample_keys, k=batch_size)
+        #loss = 0
         for sample in mini_batch:
             result = forward_prop(layers, sample)
-            loss += sum(find_loss(result, samples[sample])) / len(result)
+            #loss += sum(find_loss(result, samples[sample]))
             loss_prime = find_loss_prime(result, samples[sample])
             back_prop([loss_prime], layers, list(sample))
-        #print(loss / batch_size)
+        #print(loss / (batch_size * len(result)))
         update(layers, learning_rate, batch_size)
         reset(layers)
         learning_rate *= .99
