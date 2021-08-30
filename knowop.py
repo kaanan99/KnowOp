@@ -260,16 +260,20 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     batch_size = int(len(sample_keys) * .004)
     if batch_size < 1:
         batch_size = 5
-    learning_rate = .1
+    learning_rate = .01
     while learning_rate > .00001:
         mini_batch = random.sample(sample_keys, batch_size)
+        loss = 0
         for sample in mini_batch:
             result = forward_prop(layers, sample)
+            loss += sum(find_loss(result, samples[sample])) / len(result)
             loss_prime = find_loss_prime(result, samples[sample])
             back_prop([loss_prime], layers, list(sample))
+        #print(loss / batch_size)
         update(layers, learning_rate, batch_size)
         reset(layers)
         learning_rate *= .99
+    #print(layers[0])
     return layers
 
 
