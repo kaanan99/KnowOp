@@ -168,6 +168,7 @@ def forward_prop(layers: List[Layer], inputs: Tuple[float, ...])\
 
 
 def g_prime(layer: Layer) -> List[float]:
+    # For mult layers
     #if layer.g is Math.sigmoid:
     return [Math.sigmoid_prime(real) for real in layer.z]
     #return [Math.relu_prime(real) for real in layer.z]
@@ -252,7 +253,10 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     layers.append(Layer((o_size, i_size), True))
     sample_keys = list(samples.keys())
     batch_size = 40
-    learning_rate = .11
+    if i_size == o_size:
+        learning_rate = .11
+    else:
+        learning_rate = .21
     while learning_rate > .00005:
         mini_batch = random.choices(sample_keys, k=batch_size)
         for sample in mini_batch:
