@@ -168,9 +168,9 @@ def forward_prop(layers: List[Layer], inputs: Tuple[float, ...])\
 
 
 def g_prime(layer: Layer) -> List[float]:
-    if layer.g is Math.sigmoid:
-        return [Math.sigmoid_prime(real) for real in layer.z]
-    return [Math.relu_prime(real) for real in layer.z]
+    #if layer.g is Math.sigmoid:
+    return [Math.sigmoid_prime(real) for real in layer.z]
+    #return [Math.relu_prime(real) for real in layer.z]
 
 
 def hadamard(list1: List[float], list2: List[float]) -> List[float]:
@@ -199,8 +199,8 @@ def back_prop(da_init: List[List[float]], layers: List[Layer],
         new_db = hadamard(current_da[0], g_prime(layer))
         db = Math.transpose([new_db])
         new_dw = Math.matmul(db, [inputs] if i == 0 else [layers[i - 1].a])
-        da_prev = Math.matmul(Math.transpose(layer.w), db)
-        current_da = Math.transpose(da_prev)
+    #    da_prev = Math.matmul(Math.transpose(layer.w), db)
+    #    current_da = Math.transpose(da_prev)
         update_dw(layer.dw, new_dw)
         update_db(layer.db, new_db)
 
@@ -210,11 +210,10 @@ def update(layers: List[Layer], learning_rate: float, batch_size: int) -> None:
         # For w
         for i in range(len(layer.w)):
             for j in range(len(layer.w[i])):
-                layer.w[i][j] = layer.w[i][j] - \
-                                learning_rate * (layer.dw[i][j] / batch_size)
+                layer.w[i][j] -= learning_rate * (layer.dw[i][j] / batch_size)
         # For b
         for i in range(len(layer.b)):
-            layer.b[i] = layer.b[i] - learning_rate * (layer.db[i] / batch_size)
+            layer.b[i] -= learning_rate * (layer.db[i] / batch_size)
 
 
 def find_loss(output: Tuple[float, ...], actual: Tuple[float, ...])\
@@ -251,12 +250,12 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     layers = list()
     layers.append(Layer((o_size, i_size), True))
     sample_keys = list(samples.keys())
-    batch_size = int(len(sample_keys) * .001)
-    if batch_size < 1:
-        batch_size = 15
-    #batch_size = 60
-    learning_rate = .05
-    while learning_rate > .0001:
+    #batch_size = int(len(sample_keys) * .0015)
+    #if batch_size < 1:
+    #    batch_size = 15
+    batch_size = 40
+    learning_rate = .07
+    while learning_rate > .00005:
         mini_batch = random.choices(sample_keys, k=batch_size)
        # loss = 0
         for sample in mini_batch:
@@ -275,7 +274,7 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
 def main() -> None:
 
     random.seed(0)
-    f = lambda x, y: x + y  # operation to learn
+    f = lambda x, y: x & y  # operation to learn
     n_args = 2              # arity of operation
     n_bits = 8              # size of each operand
 
