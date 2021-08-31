@@ -199,6 +199,7 @@ def back_prop(da_init: List[List[float]], layers: List[Layer],
         new_db = hadamard(current_da[0], g_prime(layer))
         db = Math.transpose([new_db])
         new_dw = Math.matmul(db, [inputs] if i == 0 else [layers[i - 1].a])
+    # For mult layers
     #    da_prev = Math.matmul(Math.transpose(layer.w), db)
     #    current_da = Math.transpose(da_prev)
         update_dw(layer.dw, new_dw)
@@ -250,24 +251,17 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     layers = list()
     layers.append(Layer((o_size, i_size), True))
     sample_keys = list(samples.keys())
-    #batch_size = int(len(sample_keys) * .0015)
-    #if batch_size < 1:
-    #    batch_size = 15
     batch_size = 40
     learning_rate = .11
     while learning_rate > .00005:
         mini_batch = random.choices(sample_keys, k=batch_size)
-       # loss = 0
         for sample in mini_batch:
             result = forward_prop(layers, sample)
-      #      loss += sum(find_loss(result, samples[sample]))
             loss_prime = find_loss_prime(result, samples[sample])
             back_prop([loss_prime], layers, list(sample))
-     #   print(loss / (batch_size * len(result)))
         update(layers, learning_rate, batch_size)
         reset(layers)
         learning_rate *= .99
-    #print(layers[0])
     return layers
 
 
