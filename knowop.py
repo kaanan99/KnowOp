@@ -254,7 +254,7 @@ def train_network(samples: Dict[Tuple[int, ...], Tuple[int, ...]],
     #if batch_size < 1:
     #    batch_size = 15
     batch_size = 40
-    learning_rate = .07
+    learning_rate = .11
     while learning_rate > .00005:
         mini_batch = random.choices(sample_keys, k=batch_size)
        # loss = 0
